@@ -73,8 +73,8 @@ jobs:
             echo "Skip: AGENT_URL or AGENT_TOKEN not configured"
             exit 0
           fi
-          curl -sf -X POST "${AGENT_URL}/api/unity/checks" \
+          curl -sf --connect-timeout 15 --max-time 30 -X POST "${AGENT_URL}/api/unity/checks" \
             -H "Authorization: Bearer ${AGENT_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"commit_sha\": \"${{ github.sha }}\"}"
-          echo "Agent check triggered for ${{ github.sha }}"
+            -d "{\"commit_sha\": \"${{ github.sha }}\"}" \
+            || echo "Warning: Agent unreachable (start docker on Linux server)"
