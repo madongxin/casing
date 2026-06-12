@@ -45,7 +45,9 @@ jobs:
           # 工程为 2022.3.62f3c1（团结/中国版后缀），game-ci 仅提供国际版 2022.3.62f1
           unityVersion: 2022.3.62f1
           targetPlatform: StandaloneLinux64
-          customParameters: -executeMethod Ci.AssetCheckBatch.Run -nographics -batchmode -quit -logFile unity-check.log
+          # game-ci 已通过 -executeMethod 调用 buildMethod，勿在 customParameters 再写 -executeMethod
+          buildMethod: Ci.AssetCheckBatch.Run
+          customParameters: -logFile unity-check.log
           versioning: None
           allowDirtyBuild: true
 
