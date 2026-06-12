@@ -1,0 +1,4 @@
+repository "FirstFPS@tj_dadong@cloud.cn"
+  path "/"
+    br "/main"
+    co "/main"
