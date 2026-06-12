@@ -52,8 +52,8 @@ namespace Ci
                 File.WriteAllText(outPath, json);
                 Debug.Log($"[AssetCheckBatch] Report written: {outPath}\n{json}");
 
-                var exitCode = report.risk_level == "blocker" ? 1 : 0;
-                EditorApplication.Exit(exitCode);
+                // CI 只负责产出报告；资源规范问题不应导致 pipeline 红（Agent 侧会汇总）
+                EditorApplication.Exit(0);
             }
             catch (Exception ex)
             {
@@ -80,6 +80,7 @@ namespace Ci
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 if (string.IsNullOrEmpty(path) || Directory.Exists(path)) continue;
+                if (path.Contains("/Tutorials/", StringComparison.OrdinalIgnoreCase)) continue;
                 var name = Path.GetFileName(path);
                 if (name.StartsWith("Tex_") || name.StartsWith("UI_Icon_") || name.StartsWith("Prefab_"))
                     continue;

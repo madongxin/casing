@@ -27,6 +27,11 @@ jobs:
           lfs: true
           fetch-depth: 1
 
+      # Linux headless 无法解码 QuickTime .mov，FPS 教程视频会导致 import 报错
+      - name: Strip CI-incompatible tutorial videos
+        run: |
+          find Assets -type f \( -iname '*.mov' -o -iname '*.mp4' \) -print -delete || true
+
       # Unity 版本自动读 ProjectSettings/ProjectVersion.txt
       - name: Unity BatchMode Asset Check
         uses: game-ci/unity-builder@v4
