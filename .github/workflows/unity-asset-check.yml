@@ -37,7 +37,8 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
-          unityVersion: auto
+          # 工程为 2022.3.62f3c1（团结/中国版后缀），game-ci 仅提供国际版 2022.3.62f1
+          unityVersion: 2022.3.62f1
           targetPlatform: StandaloneLinux64
           customParameters: -executeMethod Ci.AssetCheckBatch.Run -nographics -batchmode -quit -logFile unity-check.log
           versioning: None
