@@ -84,14 +84,15 @@ jobs:
             echo "Skip: ci-asset-report.json not found"
             exit 0
           fi
-          payload=$(jq -n \
+          # 报告可能很大，勿用 --argjson "$(cat ...)"（会触发 Argument list too long）
+          jq -n \
             --arg sha "${{ github.sha }}" \
-            --argjson report "$(cat ci-asset-report.json)" \
-            '{commit_sha: $sha, report: $report}')
-          curl -sf --connect-timeout 15 --max-time 30 -X POST "${AGENT_URL}/api/unity/ci/report" \
+            --slurpfile report ci-asset-report.json \
+            '{commit_sha: $sha, report: $report[0]}' > ci-report-payload.json
+          curl -sf --connect-timeout 15 --max-time 120 -X POST "${AGENT_URL}/api/unity/ci/report" \
             -H "Authorization: Bearer ${AGENT_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "$payload" \
+            --data-binary @ci-report-payload.json \
             || echo "Warning: failed to submit BatchMode report"
 
       # 通知 Linux 服务器 Agent：对该 commit 做 Git 规则 + RAG 检查
