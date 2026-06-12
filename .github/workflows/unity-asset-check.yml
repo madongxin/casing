@@ -1,0 +1,79 @@
+# 复制到 Unity 仓库根目录: .github/workflows/unity-asset-check.yml
+# 仓库示例: madongxin/casing 或 madongxin/tianlongasset
+
+name: Unity Asset Check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: unity-asset-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  batchmode-check:
+    name: BatchMode + Agent
+    runs-on: ubuntu-latest   # game-ci 使用 Linux 容器跑 Unity，无需自建 Windows Runner
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      # Unity 版本自动读 ProjectSettings/ProjectVersion.txt
+      - name: Unity BatchMode Asset Check
+        uses: game-ci/unity-builder@v4
+        id: unity-build
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          unityVersion: auto
+          targetPlatform: StandaloneLinux64
+          customParameters: -executeMethod Ci.AssetCheckBatch.Run -nographics -batchmode -quit -logFile unity-check.log
+          versioning: None
+          allowDirtyBuild: true
+
+      - name: Upload BatchMode report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-asset-report
+          path: ci-asset-report.json
+          if-no-files-found: ignore
+
+      - name: Upload Unity log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-check-log
+          path: |
+            unity-check.log
+            Logs/
+          if-no-files-found: ignore
+
+      # 通知 Linux 服务器 Agent：对该 commit 做 Git 规则 + RAG 检查
+      - name: Trigger Linux Review Agent
+        if: always()
+        env:
+          AGENT_URL: ${{ secrets.AGENT_URL }}
+          AGENT_TOKEN: ${{ secrets.AGENT_TOKEN }}
+        run: |
+          if [ -z "$AGENT_URL" ] || [ -z "$AGENT_TOKEN" ]; then
+            echo "Skip: AGENT_URL or AGENT_TOKEN not configured"
+            exit 0
+          fi
+          curl -sf -X POST "${AGENT_URL}/api/unity/checks" \
+            -H "Authorization: Bearer ${AGENT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"commit_sha\": \"${{ github.sha }}\"}"
+          echo "Agent check triggered for ${{ github.sha }}"
