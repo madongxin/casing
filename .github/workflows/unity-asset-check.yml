@@ -69,6 +69,31 @@ jobs:
             Logs/
           if-no-files-found: ignore
 
+      # 将 BatchMode 全量扫描结果写入 Agent 看板
+      - name: Submit BatchMode report to Agent
+        if: always()
+        env:
+          AGENT_URL: ${{ secrets.AGENT_URL }}
+          AGENT_TOKEN: ${{ secrets.AGENT_TOKEN }}
+        run: |
+          if [ -z "$AGENT_URL" ] || [ -z "$AGENT_TOKEN" ]; then
+            echo "Skip: AGENT_URL or AGENT_TOKEN not configured"
+            exit 0
+          fi
+          if [ ! -f ci-asset-report.json ]; then
+            echo "Skip: ci-asset-report.json not found"
+            exit 0
+          fi
+          payload=$(jq -n \
+            --arg sha "${{ github.sha }}" \
+            --argjson report "$(cat ci-asset-report.json)" \
+            '{commit_sha: $sha, report: $report}')
+          curl -sf --connect-timeout 15 --max-time 30 -X POST "${AGENT_URL}/api/unity/ci/report" \
+            -H "Authorization: Bearer ${AGENT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            || echo "Warning: failed to submit BatchMode report"
+
       # 通知 Linux 服务器 Agent：对该 commit 做 Git 规则 + RAG 检查
       - name: Trigger Linux Review Agent
         if: always()
